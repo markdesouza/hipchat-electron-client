@@ -2,7 +2,7 @@
     "name": "hipchat",
     "productName": "HipChat",
     "description": "A modern HipChat client to work with the abandoned HipChat server from Atlassian.",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "private": true,
     "author": "Mark De Souza <markcdesouza@gmail.com>",
     "license": "MIT",
