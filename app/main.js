@@ -301,9 +301,15 @@ function loadChatWindow() {
 
     // Load the chat url
     mainWindow.loadURL(prefs.server_url)
+
     let contents = mainWindow.webContents
     contents.on('did-finish-load', () => {
         contents.insertCSS('#logo { margin-left: 60px; } header { -webkit-user-select: none;  -webkit-app-region: drag; } .activity-icon{ display:none; } .hc-video-call-btn-link { display:none !important; } ')
+    })
+    contents.on('new-window', function (event, url) {
+        // Intercept 'new-window' event so we can open links in the OS default browser
+        event.preventDefault()
+        open(url)
     })
 }
 

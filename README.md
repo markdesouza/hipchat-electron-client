@@ -8,9 +8,9 @@ A modern HipChat client to work with the abandoned HipChat server from Atlassian
 - Fixes the non-responsive search bar (under MacOS 12.0+)  **(done)**
 - Fixes the intermittent logout issue  **(done)**
 - Removes services like video calling that rely on Atlassian and no longer work **(done)**
-- Opens links in your default browser
-- Minimizes to a tray icon & adds tray based notifications
-- Desktop notifications
+- Opens links in your default browser **(done)**
+- Minimizes to a tray icon & adds tray based notifications **(done)**
+- Desktop notifications **(done)**
 - Enhanced keyboard shortcuts **(done)**
 
 ## Build and run from source
