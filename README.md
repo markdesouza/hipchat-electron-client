@@ -11,7 +11,7 @@ A modern HipChat client to work with the abandoned HipChat server from Atlassian
 - Opens links in your default browser
 - Minimizes to a tray icon & adds tray based notifications
 - Desktop notifications
-- Enhanced keyboard shortcuts
+- Enhanced keyboard shortcuts **(done)**
 
 ## Build and run from source
 
