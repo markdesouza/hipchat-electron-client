@@ -7,9 +7,9 @@ const storage = require('electron-json-storage')
 const prompt = require('electron-prompt')
 const app = electron.app
 const BrowserWindow = electron.BrowserWindow
-const Menu = electron.Menu;
-const MenuItem = electron.MenuItem;
-const Tray = electron.Tray;
+const Menu = electron.Menu
+const MenuItem = electron.MenuItem
+const Tray = electron.Tray
 const ipcMain = electron.ipcMain
 const nativeImage = electron.nativeImage
 
@@ -17,6 +17,8 @@ const DEFAULT_SERVER_URL = ''
 let mainWindow = null
 let appIcon = null
 let prefs = {}
+let mentionCount = 0
+let trayIconAlerted = false
 
 // Set dock icon in macos
 if (process.platform == 'darwin') {
@@ -123,12 +125,20 @@ function loadChatWindow() {
         mainWindow = null
     })
 
+    app.on('window-all-closed', function () {
+        // On OS X it is common for applications and their menu bar
+        // to stay active until the user quits explicitly with Cmd + Q
+        if (process.platform != 'darwin') {
+            quit()
+        }
+    })
+
     mainWindow.on('resize', function (event) {
         var size = mainWindow.getSize()
         prefs['windowWidth'] = size[0]
         prefs['windowHeight'] = size[1]
         savePrefs()
-    });
+    })
 
     mainWindow.on('move', function (event) {
         var position = mainWindow.getPosition()
@@ -143,13 +153,13 @@ function loadChatWindow() {
             label: "HipChat",
             submenu: [
                 { label: "New Chat", accelerator: 'CmdOrCtrl+N', click: newChat },
-                { label: "Invite to Room", click: function () { sendKeyboardShortcut('I', true); } },
+                { label: "Invite to Room", click: function () { sendKeyboardShortcut('I', true) } },
                 { label: "Go To Unread Message", accelerator: 'CmdOrCtrl+G', click: gotoUnread },
                 { label: "Close Room", accelerator: 'CmdOrCtrl+W', click: closeRoom },
-                { label: "Previous Room", visible: false, accelerator: 'CmdOrCtrl+PageUp', click: function () { sendKeyboardShortcut('Up', true, true); } },
-                { label: "Previous Room", visible: false, accelerator: 'CmdOrCtrl+Shift+Tab', click: function () { sendKeyboardShortcut('Up', true, true); } },
-                { label: "Next Room", visible: false, accelerator: 'CmdOrCtrl+PageDown', click: function () { sendKeyboardShortcut('Down', true, true); } },
-                { label: "Next Room", visible: false, accelerator: 'CmdOrCtrl+Tab', click: function () { sendKeyboardShortcut('Down', true, true); } },
+                { label: "Previous Room", visible: false, accelerator: 'CmdOrCtrl+PageUp', click: function () { sendKeyboardShortcut('Up', true, true) } },
+                { label: "Previous Room", visible: false, accelerator: 'CmdOrCtrl+Shift+Tab', click: function () { sendKeyboardShortcut('Up', true, true) } },
+                { label: "Next Room", visible: false, accelerator: 'CmdOrCtrl+PageDown', click: function () { sendKeyboardShortcut('Down', true, true) } },
+                { label: "Next Room", visible: false, accelerator: 'CmdOrCtrl+Tab', click: function () { sendKeyboardShortcut('Down', true, true) } },
                 { type: 'separator' },
                 { label: "Logout", click: logout },
                 { label: "Quit", accelerator: 'CmdOrCtrl+Q', click: quit },
@@ -201,39 +211,39 @@ function loadChatWindow() {
                     accelerator: 'CmdOrCtrl+R',
                     click: function (item, focusedWindow) {
                         if (focusedWindow)
-                            focusedWindow.reload();
+                            focusedWindow.reload()
                     }
                 },
                 {
                     label: 'Toggle Full Screen',
                     accelerator: (function () {
                         if (process.platform == 'darwin')
-                            return 'Ctrl+Command+F';
+                            return 'Ctrl+Command+F'
                         else
-                            return 'F11';
+                            return 'F11'
                     })(),
                     click: function (item, focusedWindow) {
                         if (focusedWindow)
-                            focusedWindow.setFullScreen(!focusedWindow.isFullScreen());
+                            focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
                     }
                 },
                 {
                     label: 'Toggle Developer Tools',
                     accelerator: (function () {
                         if (process.platform == 'darwin')
-                            return 'Alt+Command+I';
+                            return 'Alt+Command+I'
                         else
-                            return 'Ctrl+Shift+I';
+                            return 'Ctrl+Shift+I'
                     })(),
                     click: function (item, focusedWindow) {
                         if (focusedWindow)
-                            focusedWindow.webContents.toggleDevTools();
+                            focusedWindow.webContents.toggleDevTools()
                     }
                 },
                 { type: 'separator' },
-                { label: "Zoom In", accelerator: 'CmdOrCtrl+=', click: function () { zoom(1); } },
-                { label: "Zoom Out", accelerator: 'CmdOrCtrl+-', click: function () { zoom(-1); } },
-                { label: "Reset Zoom", accelerator: 'CmdOrCtrl+0', click: function () { zoom(0); } },
+                { label: "Zoom In", accelerator: 'CmdOrCtrl+=', click: function () { zoom(1) } },
+                { label: "Zoom Out", accelerator: 'CmdOrCtrl+-', click: function () { zoom(-1) } },
+                { label: "Reset Zoom", accelerator: 'CmdOrCtrl+0', click: function () { zoom(0) } },
             ]
         },
         {
@@ -252,8 +262,8 @@ function loadChatWindow() {
             ]
         }
     ]
-    mainWindow.setMenu(Menu.buildFromTemplate(template));
-    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+    mainWindow.setMenu(Menu.buildFromTemplate(template))
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 
     // Tray icon menu
     const iconPaths = {
@@ -299,6 +309,19 @@ function loadChatWindow() {
         (mentionCount > 0) ? gotoUnread() : toggleWindowFocus()
     })
 
+    // Listen for unread channels from preload.js/render process
+    ipcMain.on('unread-count', function (event, mentions) {
+        let shouldAlert = (mentions > 0)
+        if (shouldAlert && !trayIconAlerted || !shouldAlert && trayIconAlerted) {
+            appIcon.setImage((shouldAlert) ? alertTrayIconImage : normalTrayIconImage)
+        }
+        if ((process.platform === 'darwin') && (mentionCount < mentions)) {
+            app.dock.bounce("informational")
+        }
+        mentionCount = mentions
+        trayIconAlerted = shouldAlert
+    })
+
     // Load the chat url
     mainWindow.loadURL(prefs.server_url)
 
@@ -310,6 +333,81 @@ function loadChatWindow() {
         // Intercept 'new-window' event so we can open links in the OS default browser
         event.preventDefault()
         open(url)
+    })
+
+    // Right click menu
+    contents.on('context-menu', (event, params) => {
+        const menu = new Menu()
+        if (params.editFlags.canUndo) {
+            menu.append(new MenuItem({
+                label: 'Undo',
+                accelerator: 'CmdOrCtrl+Z',
+                role: 'undo'
+            }))
+        }
+        if (params.editFlags.canRedo) {
+            menu.append(new MenuItem({
+                label: 'Redo',
+                accelerator: 'Shift+CmdOrCtrl+Z',
+                role: 'redo'
+            }))
+        }
+        if (params.editFlags.canUndo || params.editFlags.canRedo) {
+            menu.append(new MenuItem({
+                type: 'separator'
+            }))
+        }
+        if (params.editFlags.canCut) {
+            menu.append(new MenuItem({
+                label: 'Cut',
+                accelerator: 'CmdOrCtrl+X',
+                role: 'cut'
+            }))
+        }
+        if (params.editFlags.canCopy) {
+            menu.append(new MenuItem({
+                label: 'Copy',
+                accelerator: 'CmdOrCtrl+C',
+                role: 'copy'
+            }))
+        }
+        if (params.editFlags.canPaste) {
+            menu.append(new MenuItem({
+                label: 'Paste',
+                accelerator: 'CmdOrCtrl+V',
+                role: 'paste'
+            }))
+        }
+
+        menu.append(new MenuItem({
+            label: 'Select All',
+            accelerator: 'CmdOrCtrl+A',
+            role: 'selectall'
+        }))
+
+        menu.append(new MenuItem({
+            type: 'separator'
+        }))
+
+        // Add each spelling suggestion
+        for (const suggestion of params.dictionarySuggestions) {
+            menu.append(new MenuItem({
+                label: suggestion,
+                click: () => mainWindow.webContents.replaceMisspelling(suggestion)
+            }))
+        }
+
+        // Allow users to add the misspelled word to the dictionary
+        if (params.misspelledWord) {
+            menu.append(
+                new MenuItem({
+                    label: 'Add to dictionary',
+                    click: () => mainWindow.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+                })
+            )
+        }
+
+        menu.popup()
     })
 }
 
@@ -332,16 +430,16 @@ function toggleWindowFocus() {
 
 // Send a keyboard event to the page (see Electron Docs: Accelerators for valid keyCode values)
 function sendKeyboardShortcut(keyCode, ctrlKey, altKey, shiftKey) {
-    showAndFocusWindow();
-    var modifiers = [];
-    if (ctrlKey) modifiers.push('control');
-    if (altKey) modifiers.push('alt');
-    if (shiftKey) modifiers.push('shift');
+    showAndFocusWindow()
+    var modifiers = []
+    if (ctrlKey) modifiers.push('control')
+    if (altKey) modifiers.push('alt')
+    if (shiftKey) modifiers.push('shift')
     mainWindow.webContents.sendInputEvent({
         type: 'keyDown',
         keyCode: keyCode,
         modifiers: modifiers,
-    });
+    })
 }
 
 function logout() {
@@ -371,12 +469,12 @@ function gotoUnread() {
 }
 
 function closeRoom() {
-    mainWindow.webContents.send('close-room');
+    mainWindow.webContents.send('close-room')
 }
 
 function newChat() {
-    showAndFocusWindow();
-    sendKeyboardShortcut('J', true);
+    showAndFocusWindow()
+    sendKeyboardShortcut('J', true)
 }
 
 function quit() {

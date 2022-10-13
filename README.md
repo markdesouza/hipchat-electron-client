@@ -32,6 +32,8 @@ A modern HipChat client to work with the abandoned HipChat server from Atlassian
         $ yarn build-win
         or
         $ yarn build-linux
+	or
+	$ yarn build-all
 
 ## Arguments
 

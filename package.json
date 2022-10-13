@@ -2,7 +2,7 @@
     "name": "hipchat",
     "productName": "HipChat",
     "description": "A modern HipChat client to work with the abandoned HipChat server from Atlassian.",
-    "version": "2.5.2",
+    "version": "2.5.4",
     "private": true,
     "author": "Mark De Souza <markcdesouza@gmail.com>",
     "license": "MIT",
@@ -28,7 +28,8 @@
         "start": "electron .",
         "build-mac": "electron-builder build --mac --universal=true -c.asar=false",
         "build-win": "electron-builder build --win -c.asar=false",
-        "build-linux": "electron-builder build --linux -c.asar=false"
+        "build-linux": "electron-builder build --linux -c.asar=false",
+	"build-all": "electron-builder build --mac --universal=true --win --linux -c.asar=false"
     },
     "dependencies": {
         "electron-json-storage": "^4.5.0",
