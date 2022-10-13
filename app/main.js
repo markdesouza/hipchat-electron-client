@@ -309,6 +309,18 @@ function loadChatWindow() {
         (mentionCount > 0) ? gotoUnread() : toggleWindowFocus()
     })
 
+    // Set up Windows app actions
+    if (app.hasOwnProperty('setUserTasks')) {
+        app.setUserTasks([{
+            program: process.execPath,
+            arguments: '--new-chat',
+            iconPath: process.execPath,
+            iconIndex: 0,
+            title: 'New Chat',
+            description: 'Join a room or start a private conversation'
+        }])
+    }
+
     // Listen for unread channels from preload.js/render process
     ipcMain.on('unread-count', function (event, mentions) {
         let shouldAlert = (mentions > 0)
